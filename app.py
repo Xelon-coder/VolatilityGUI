@@ -1,8 +1,6 @@
 import subprocess
 import re
 from colorama import Fore
-from object import File
-from anytree import Node, RenderTree
 from tools import *
 
 # Globals for volat
@@ -224,6 +222,8 @@ class VolatilityInfo:
             print(G_NEW,len(content),"content was found in clipboard")
             return toClipboardFormat(content)
 
-#Vi = VolatilityInfo(MEMORY_FILE,VOLATILITY_PATH)
-#Vi.profile = "Win7SP1x86_23418"
-#Vi.clipboard()
+Vi = VolatilityInfo(MEMORY_FILE,VOLATILITY_PATH)
+Vi.determineProfile()
+_, root = Vi.filterFiles(".exe") # Only .exe files
+
+displayTree(root)

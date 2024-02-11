@@ -1,5 +1,5 @@
 from object import File, Processus, Clipboard
-from anytree import Node
+from anytree import Node, RenderTree
 
 def generateTree(files,filter=''):
 
@@ -90,3 +90,7 @@ def toClipboardFormat(content):
         clipboard.append(Clipboard(feilds))
     
     return clipboard
+
+def displayTree(root):
+    for pre, fill, node in RenderTree(root):
+        print("%s%s" % (pre, node.name.name))
