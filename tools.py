@@ -14,6 +14,9 @@ def generateTree(files,filter=''):
             objectFiles.append(File(feilds))
 
     objectFiles = sorted(objectFiles, key=lambda x: x.level)
+    
+    if len(objectFiles) == 0:
+        objectFiles.insert(0,File(['x','x','x','x','\\General']))
 
     while objectFiles[0].level > 1:
         objectFiles.insert(0,File(['x','x','x','x','\\'.join(objectFiles[0].location[:-1])]))
