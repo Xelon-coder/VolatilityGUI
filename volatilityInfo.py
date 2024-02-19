@@ -19,6 +19,7 @@ class VolatilityInfo:
         self.memoryFile = file
         self.volatilityPath = path
         self.profile = ""
+        self.dumpDirectory = ""
 
         self.stringFiles = []
         self.objectFiles = []
@@ -48,7 +49,7 @@ class VolatilityInfo:
     # If no profile was found returns an error
     def determineProfile(self):
 
-        print(G_INFO,'Searching profile(s)')
+        print(G_INFO,'Searching profile(s) for file :',self.memoryFile)
         stdout, stderr = self.runVolatilityCommand("imageinfo")
         
         attributeList = stdout.decode('utf-8').split('\n')

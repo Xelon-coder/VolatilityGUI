@@ -1,7 +1,7 @@
 import sys
 
 from PySide2.QtCore import QSize
-from PySide2.QtWidgets import QApplication, QMainWindow, QGridLayout, QVBoxLayout, QHBoxLayout ,QWidget, QLineEdit, QTreeView, QCheckBox
+from PySide2.QtWidgets import QApplication, QMainWindow, QGridLayout, QVBoxLayout, QHBoxLayout ,QWidget, QLineEdit, QTreeView, QCheckBox, QPushButton, QFileDialog, QComboBox, QLabel
 from PySide2.QtGui import QPalette, QColor, QStandardItemModel, QStandardItem
 from PySide2.QtCore import Qt, QModelIndex
 from tools import *
@@ -26,24 +26,67 @@ class MainWindow(QMainWindow):
         super().__init__()
 
         self.vi = VolatilityInfo(MEMORY_FILE,VOLATILITY_PATH)
-        self.vi.profile = "Win7SP1x86_23418"
 
         self.setWindowTitle("Volatility GUI")
         self.setFixedSize(QSize(1200, 800))
 
-        layout = QGridLayout()
+        widgets = [(self.createTreePanel(),0,1,2,2),(self.createGreenPanel(),1,0,1,1),(self.createBluePanel(),0,0,1,1)]
 
-        # DrawTree
+        # Main frame
+        widget = QWidget()
+        widget.setLayout(self.createMainPanel(widgets))
+        self.setCentralWidget(widget)
+
+    def createGreenPanel(self):
+        green_widget = Color('green')
+        return green_widget
+    
+    def handleProfile(self,result):
+        self.profilesButton.clear()
+        self.profilesButton.addItems(result)
+
+    def createBluePanel(self):
+        blue_widget = Color('blue')
+
+        button1 = QPushButton('Find profile',self)
+        button1.clicked.connect(lambda: self.handleProfile(self.vi.determineProfile()))
+        self.profilesButton = QComboBox(self)
+        button2 = QPushButton('Select File', self)
+        button3 = QPushButton('Select Folder', self)
+
+        button2.clicked.connect(self.selectFile)
+        button3.clicked.connect(self.selectDirectory)
+
+        self.labelProfile = QLabel("Select volatility profile", self)
+        self.labelFile = QLabel("Selected file :", self)
+        self.labelDump = QLabel("Selected dump folder :", self)
+
+
+        layoutButton = QVBoxLayout()
+        layoutButton.addWidget(button2)
+        layoutButton.addWidget(self.labelFile)
+        layoutButton.addWidget(self.labelProfile)
+        layoutButton.addWidget(button1)
+        layoutButton.addWidget(self.profilesButton)
+        layoutButton.addWidget(button3)
+        layoutButton.addWidget(self.labelDump)
+
+        blue_widget.setLayout(layoutButton)
+
+        return blue_widget
+
+    def createTreePanel(self):
+
         self.model = QStandardItemModel()
         self.model.setHorizontalHeaderLabels(['Nom du fichier'])
 
-        _,root = self.vi.filterFiles('')
+        #_,root = self.vi.filterFiles('')
 
-        self.add_node(root,self.model)
+        #self.add_node(root,self.model)
 
         self.tree = QTreeView()
-        self.tree.setModel(self.model)
-        self.tree.show()
+        #self.tree.setModel(self.model)
+        #self.tree.show()
         
         # Tree Ps and Files Widget
         self.searchbar = QLineEdit()
@@ -51,7 +94,7 @@ class MainWindow(QMainWindow):
         self.checkbox.stateChanged.connect(self.expand_tree)
         self.searchbar.textChanged.connect(self.filter_tree)  # Connect the slot
 
-        red_widget = Color('red')
+        treePanel = Color('red')
         treeLayout = QHBoxLayout()
 
         layoutFilter = QVBoxLayout()
@@ -60,22 +103,15 @@ class MainWindow(QMainWindow):
         layoutFilter.addWidget(self.tree,2)
 
         treeLayout.addLayout(layoutFilter)
-        red_widget.setLayout(treeLayout)
+        treePanel.setLayout(treeLayout)
 
-        layout.addWidget(red_widget, 0, 1, 2, 2)  # Row 0, Col 0, Span 1 Row, 2 Co
+        return treePanel
 
-        # Green Widget
-        green_widget = Color('green')
-        layout.addWidget(green_widget, 1, 0, 1, 1)  # Row 1, Col 0, Span 1 Row, 1 Col
-
-        # Blue Widget
-        green_widget = Color('blue')
-        layout.addWidget(green_widget, 0, 0, 1, 1)  # Row 1, Col 0, Span 1 Row, 1 Col
-
-        # Main frame
-        widget = QWidget()
-        widget.setLayout(layout)
-        self.setCentralWidget(widget)
+    def createMainPanel(self,widgets):
+        layout = QGridLayout()
+        for wid,row,col,spanRow,spanCol in widgets:
+            layout.addWidget(wid, row, col, spanRow, spanCol)
+        return layout
 
     def add_node(self,node, parent):
         
@@ -105,6 +141,20 @@ class MainWindow(QMainWindow):
             self.tree.expandAll()
         else:
             self.tree.collapseAll()
+
+    def selectFile(self):
+        filename, _ = QFileDialog.getOpenFileName(self, "Choisir un fichier", "", "Tous les fichiers (*)")
+        if filename:
+            self.vi.memoryFile = filename
+            self.labelFile.clear()
+            self.labelFile.setText("Selected file :"+str(filename))
+
+    def selectDirectory(self):
+        directory = QFileDialog.getExistingDirectory(self, "Choisir un dossier", "",)
+        if directory:
+            self.vi.dumpDirectory = directory
+            self.labelDump.clear()
+            self.labelDump.setText("Selected dump folder :"+str(directory))
 
 if __name__=="__main__":
     app = QApplication(sys.argv)
