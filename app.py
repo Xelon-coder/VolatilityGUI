@@ -32,6 +32,8 @@ class MainWindow(QMainWindow):
 
         widgets = [(self.createTreePanel(),0,1,2,2),(self.createGreenPanel(),1,0,1,1),(self.createBluePanel(),0,0,1,1)]
 
+        self.currentFiles = None
+
         # Main frame
         widget = QWidget()
         widget.setLayout(self.createMainPanel(widgets))
@@ -39,6 +41,16 @@ class MainWindow(QMainWindow):
 
     def createGreenPanel(self):
         green_widget = Color('green')
+
+        self.dumpFilesButton = QPushButton("Dumpfiles")
+        self.dumpFilesButton.setEnabled(False)
+        self.dumpFilesButton.clicked.connect(self.dumpFiles)
+
+        layoutButton = QVBoxLayout()
+        layoutButton.addWidget(self.dumpFilesButton)
+
+        green_widget.setLayout(layoutButton)
+
         return green_widget
     
     def handleProfile(self,result):
@@ -162,10 +174,15 @@ class MainWindow(QMainWindow):
 
     def on_tree_clicked(self, index: QModelIndex):
         item = self.model.itemFromIndex(index)
+        self.dumpFilesButton.setEnabled(True)
         if item is not None:
             file_obj = item.data(Qt.UserRole)
             if file_obj is not None:
-                "Nom du fichier:", file_obj.name
+                self.currentFiles = file_obj
+
+    def dumpFiles(self):
+        if self.currentFiles != None:
+            self.vi.dumpFiles(self.currentFiles.offset,self.vi.dumpDirectory)
 
 if __name__=="__main__":
     app = QApplication(sys.argv)
