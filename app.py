@@ -87,6 +87,8 @@ class MainWindow(QMainWindow):
         self.tree = QTreeView()
         #self.tree.setModel(self.model)
         #self.tree.show()
+
+        self.tree.clicked.connect(self.on_tree_clicked)
         
         # Tree Ps and Files Widget
         self.searchbar = QLineEdit()
@@ -116,6 +118,7 @@ class MainWindow(QMainWindow):
     def add_node(self,node, parent):
         
         item = QStandardItem(node.name.name)
+        item.setData(node.name, Qt.UserRole)
 
         existing_items = self.model.findItems(node.name.name, Qt.MatchExactly | Qt.MatchRecursive)
         if existing_items:
@@ -132,6 +135,7 @@ class MainWindow(QMainWindow):
         self.model.setHorizontalHeaderLabels(['Nom du fichier'])
         self.add_node(root, self.model)
         self.tree.setModel(self.model)  # Update the model of the tree
+        self.tree.clicked.connect(self.on_tree_clicked)
         
         if self.checkbox.isChecked():
             self.tree.expandAll()
@@ -155,6 +159,13 @@ class MainWindow(QMainWindow):
             self.vi.dumpDirectory = directory
             self.labelDump.clear()
             self.labelDump.setText("Selected dump folder :"+str(directory))
+
+    def on_tree_clicked(self, index: QModelIndex):
+        item = self.model.itemFromIndex(index)
+        if item is not None:
+            file_obj = item.data(Qt.UserRole)
+            if file_obj is not None:
+                "Nom du fichier:", file_obj.name
 
 if __name__=="__main__":
     app = QApplication(sys.argv)
