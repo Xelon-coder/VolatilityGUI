@@ -33,6 +33,7 @@ class MainWindow(QMainWindow):
         widgets = [(self.createTreePanel(),0,1,2,2),(self.createGreenPanel(),1,0,1,1),(self.createBluePanel(),0,0,1,1)]
 
         self.currentFiles = None
+        self.currentPid = None
 
         # Main frame
         widget = QWidget()
@@ -46,8 +47,22 @@ class MainWindow(QMainWindow):
         self.dumpFilesButton.setEnabled(False)
         self.dumpFilesButton.clicked.connect(self.dumpFiles)
 
+        self.memDumpButton = QPushButton("Memdump")
+        self.memDumpButton.setEnabled(False)
+        self.memDumpButton.clicked.connect(self.memDump)
+        self.procDumpButton = QPushButton("Procdump")
+        self.procDumpButton.setEnabled(False)
+        self.procDumpButton.clicked.connect(self.procDump)
+
+        self.pidText = QLineEdit()
+        self.pidText.setPlaceholderText("Set your pid here")
+        self.pidText.textChanged.connect(self.updatePid)
+
         layoutButton = QVBoxLayout()
         layoutButton.addWidget(self.dumpFilesButton)
+        layoutButton.addWidget(self.pidText)
+        layoutButton.addWidget(self.memDumpButton)
+        layoutButton.addWidget(self.procDumpButton)
 
         green_widget.setLayout(layoutButton)
 
@@ -63,6 +78,7 @@ class MainWindow(QMainWindow):
         button1 = QPushButton('Find profile',self)
         button1.clicked.connect(lambda: self.handleProfile(self.vi.determineProfile()))
         self.profilesButton = QComboBox(self)
+        self.profilesButton.setPlaceholderText("Select your profile")
         button2 = QPushButton('Select File', self)
         button3 = QPushButton('Select Folder', self)
 
@@ -183,6 +199,25 @@ class MainWindow(QMainWindow):
     def dumpFiles(self):
         if self.currentFiles != None:
             self.vi.dumpFiles(self.currentFiles.offset,self.vi.dumpDirectory)
+
+    def memDump(self):
+        if self.currentPid != None:
+            self.vi.memDump(self.currentPid,self.vi.dumpDirectory)
+
+    def procDump(self):
+        if self.currentPid != None:
+            self.vi.procDump(self.currentPid,self.vi.dumpDirectory)
+
+    def updatePid(self, pid):
+        if len(pid) != 0:
+            try:
+                self.currentPid = str(int(pid))
+                self.procDumpButton.setEnabled(True)
+                self.memDumpButton.setEnabled(True)
+            except:
+                print("[!] Only numbers")
+                self.procDumpButton.setEnabled(False)
+                self.memDumpButton.setEnabled(False)
 
 if __name__=="__main__":
     app = QApplication(sys.argv)
