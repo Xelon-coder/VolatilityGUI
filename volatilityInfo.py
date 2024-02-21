@@ -224,6 +224,7 @@ class VolatilityInfo:
             return toClipboardFormat(content)
 
 #Vi = VolatilityInfo(MEMORY_FILE,VOLATILITY_PATH)
+#Vi.profile = "Win7SP1x86_23418"
 #Vi.determineProfile()
 #_, root = Vi.filterFiles(".exe") # Only .exe files
 

@@ -1,11 +1,12 @@
 import sys
 
 from PySide2.QtCore import QSize
-from PySide2.QtWidgets import QApplication, QMainWindow, QGridLayout, QVBoxLayout, QHBoxLayout ,QWidget, QLineEdit, QTreeView, QCheckBox, QPushButton, QFileDialog, QComboBox, QLabel
+from PySide2.QtWidgets import QApplication, QMainWindow, QGridLayout, QVBoxLayout, QHBoxLayout ,QWidget, QLineEdit, QTreeView, QCheckBox, QPushButton, QFileDialog, QComboBox, QLabel, QTextEdit
 from PySide2.QtGui import QPalette, QColor, QStandardItemModel, QStandardItem
 from PySide2.QtCore import Qt, QModelIndex
 from tools import *
 from volatilityInfo import *
+from io import StringIO
 
 MEMORY_FILE = "dump"
 VOLATILITY_PATH = "volatility/vol.py"
@@ -17,7 +18,7 @@ class Color(QWidget):
         self.setAutoFillBackground(True)
 
         palette = self.palette()
-        palette.setColor(QPalette.Window, QColor(color))
+        palette.setColor(QPalette.Window, QColor(239,239,239))
         self.setPalette(palette)
 
 class MainWindow(QMainWindow):
@@ -30,15 +31,36 @@ class MainWindow(QMainWindow):
         self.setWindowTitle("Volatility GUI")
         self.setFixedSize(QSize(1200, 800))
 
-        widgets = [(self.createTreePanel(),0,1,2,2),(self.createGreenPanel(),1,0,1,1),(self.createBluePanel(),0,0,1,1)]
+        widgets = [(self.createTreePanel(),0,1,2,1),(self.createGreenPanel(),1,0,1,1),(self.createBluePanel(),0,0,1,1),(self.createConsolePanel(),2,0,1,2)]
 
         self.currentFiles = None
         self.currentPid = None
+        self.currentCommand = None
 
         # Main frame
         widget = QWidget()
         widget.setLayout(self.createMainPanel(widgets))
         self.setCentralWidget(widget)
+
+    def createConsolePanel(self):
+        console_widget = Color('black')
+
+        self.commandFeild = QLineEdit()
+        self.commandFeild.setPlaceholderText('Enter volatility plugin')
+        self.commandFeild.textChanged.connect(self.updateCommand)
+        self.commandContent = QTextEdit()
+        self.commandContent.setReadOnly(True)
+        self.commandButton = QPushButton("Execute")
+        self.commandButton.clicked.connect(self.executeCommand)
+    
+        layout = QGridLayout()
+        layout.addWidget(self.commandFeild,0,0,1,1)
+        layout.addWidget(self.commandButton,0,1,1,1)
+        layout.addWidget(self.commandContent,1,0,1,2)
+
+        console_widget.setLayout(layout)
+
+        return console_widget
 
     def createGreenPanel(self):
         green_widget = Color('green')
@@ -58,11 +80,14 @@ class MainWindow(QMainWindow):
         self.pidText.setPlaceholderText("Set your pid here")
         self.pidText.textChanged.connect(self.updatePid)
 
-        layoutButton = QVBoxLayout()
-        layoutButton.addWidget(self.dumpFilesButton)
-        layoutButton.addWidget(self.pidText)
-        layoutButton.addWidget(self.memDumpButton)
-        layoutButton.addWidget(self.procDumpButton)
+        self.labelFileInfo = QLabel("File Information")
+
+        layoutButton = QGridLayout()
+        layoutButton.addWidget(self.labelFileInfo,0,0,1,1)
+        layoutButton.addWidget(self.dumpFilesButton,0,1,1,2)
+        layoutButton.addWidget(self.pidText,1,0,1,1)
+        layoutButton.addWidget(self.memDumpButton,1,1,1,1)
+        layoutButton.addWidget(self.procDumpButton,1,2,1,1)
 
         green_widget.setLayout(layoutButton)
 
@@ -71,6 +96,8 @@ class MainWindow(QMainWindow):
     def handleProfile(self,result):
         self.profilesButton.clear()
         self.profilesButton.addItems(result)
+        if len(result) > 0:
+            self.profilesButton.setCurrentIndex(0)
 
     def createBluePanel(self):
         blue_widget = Color('blue')
@@ -78,26 +105,26 @@ class MainWindow(QMainWindow):
         button1 = QPushButton('Find profile',self)
         button1.clicked.connect(lambda: self.handleProfile(self.vi.determineProfile()))
         self.profilesButton = QComboBox(self)
-        self.profilesButton.setPlaceholderText("Select your profile")
+        self.profilesButton.currentIndexChanged.connect(self.profileChanged)
         button2 = QPushButton('Select File', self)
         button3 = QPushButton('Select Folder', self)
 
         button2.clicked.connect(self.selectFile)
         button3.clicked.connect(self.selectDirectory)
 
-        self.labelProfile = QLabel("Select volatility profile", self)
+        #self.labelProfile = QLabel("Aelect volatility profile", self)
         self.labelFile = QLabel("Selected file :", self)
         self.labelDump = QLabel("Selected dump folder :", self)
 
 
-        layoutButton = QVBoxLayout()
-        layoutButton.addWidget(button2)
-        layoutButton.addWidget(self.labelFile)
-        layoutButton.addWidget(self.labelProfile)
-        layoutButton.addWidget(button1)
-        layoutButton.addWidget(self.profilesButton)
-        layoutButton.addWidget(button3)
-        layoutButton.addWidget(self.labelDump)
+        layoutButton = QGridLayout()
+        layoutButton.addWidget(button2,0,0,1,1)
+        layoutButton.addWidget(self.labelFile,1,0,1,1)
+        #layoutButton.addWidget(self.labelProfile)
+        layoutButton.addWidget(button1,0,1,1,1)
+        layoutButton.addWidget(self.profilesButton,1,1,1,1)
+        layoutButton.addWidget(button3,2,0,1,1)
+        layoutButton.addWidget(self.labelDump,3,0,1,1)
 
         blue_widget.setLayout(layoutButton)
 
@@ -178,6 +205,8 @@ class MainWindow(QMainWindow):
         filename, _ = QFileDialog.getOpenFileName(self, "Choisir un fichier", "", "Tous les fichiers (*)")
         if filename:
             self.vi.memoryFile = filename
+            if len(filename) > 20:
+                filename = '...'+str(filename[len(filename)-20:])
             self.labelFile.clear()
             self.labelFile.setText("Selected file :"+str(filename))
 
@@ -185,8 +214,10 @@ class MainWindow(QMainWindow):
         directory = QFileDialog.getExistingDirectory(self, "Choisir un dossier", "",)
         if directory:
             self.vi.dumpDirectory = directory
+            if len(directory) > 20:
+                directory = '...'+str(directory[len(directory)-20:])
             self.labelDump.clear()
-            self.labelDump.setText("Selected dump folder :"+str(directory))
+            self.labelDump.setText("Selected dump folder : "+str(directory))
 
     def on_tree_clicked(self, index: QModelIndex):
         item = self.model.itemFromIndex(index)
@@ -195,6 +226,7 @@ class MainWindow(QMainWindow):
             file_obj = item.data(Qt.UserRole)
             if file_obj is not None:
                 self.currentFiles = file_obj
+                self.labelFileInfo.setText("File Informations\nOffset: "+str(file_obj.offset)+"\nPtr: "+str(file_obj.ptr)+"\nHnd: "+str(file_obj.hnd)+"\nAccess: "+str(file_obj.access)+"\nName: "+str(file_obj.name))
 
     def dumpFiles(self):
         if self.currentFiles != None:
@@ -218,6 +250,16 @@ class MainWindow(QMainWindow):
                 print("[!] Only numbers")
                 self.procDumpButton.setEnabled(False)
                 self.memDumpButton.setEnabled(False)
+
+    def updateCommand(self,command):
+        self.currentCommand = command
+
+    def executeCommand(self):
+        stdout,stderr = self.vi.runVolatilityCommand(self.currentCommand)
+        self.commandContent.setText(stdout.decode('utf-8'))
+
+    def profileChanged(self, index):
+        self.vi.profile = self.profilesButton.currentText()
 
 if __name__=="__main__":
     app = QApplication(sys.argv)
