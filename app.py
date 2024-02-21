@@ -1,7 +1,7 @@
 import sys
 
 from PySide2.QtCore import QSize
-from PySide2.QtWidgets import QApplication, QMainWindow, QGridLayout, QVBoxLayout, QHBoxLayout ,QWidget, QLineEdit, QTreeView, QCheckBox, QPushButton, QFileDialog, QComboBox, QLabel, QTextEdit
+from PySide2.QtWidgets import QApplication, QMainWindow, QGridLayout, QVBoxLayout, QHBoxLayout ,QWidget, QLineEdit, QTreeView, QCheckBox, QPushButton, QFileDialog, QComboBox, QLabel, QTextEdit, QToolBar, QAction
 from PySide2.QtGui import QPalette, QColor, QStandardItemModel, QStandardItem
 from PySide2.QtCore import Qt, QModelIndex
 from tools import *
@@ -42,6 +42,18 @@ class MainWindow(QMainWindow):
         widget.setLayout(self.createMainPanel(widgets))
         self.setCentralWidget(widget)
 
+        self.setup_toolbar()
+
+    def setup_toolbar(self):
+        self.toolbar = QToolBar("Toolbar")
+        self.addToolBar(self.toolbar)
+        self.toolbar.setMovable(False)
+
+        action_button = QAction("File", self)
+        self.toolbar.addAction(action_button)
+        action_button = QAction("Options", self)
+        self.toolbar.addAction(action_button)
+
     def createConsolePanel(self):
         console_widget = Color('black')
 
@@ -53,10 +65,14 @@ class MainWindow(QMainWindow):
         self.commandButton = QPushButton("Execute")
         self.commandButton.clicked.connect(self.executeCommand)
     
+        manualLabel = QLabel("Manual Command")
+        manualLabel.setStyleSheet("font-weight: bold;")
+
         layout = QGridLayout()
-        layout.addWidget(self.commandFeild,0,0,1,1)
-        layout.addWidget(self.commandButton,0,1,1,1)
-        layout.addWidget(self.commandContent,1,0,1,2)
+        layout.addWidget(manualLabel,0,0,1,1)
+        layout.addWidget(self.commandFeild,1,0,1,1)
+        layout.addWidget(self.commandButton,1,1,1,1)
+        layout.addWidget(self.commandContent,2,0,1,2)
 
         console_widget.setLayout(layout)
 
@@ -65,7 +81,10 @@ class MainWindow(QMainWindow):
     def createGreenPanel(self):
         green_widget = Color('green')
 
-        self.dumpFilesButton = QPushButton("Dumpfiles")
+        self.findFiles = QPushButton("FindFiles")
+        self.findFiles.clicked.connect(self.firstTree)
+
+        self.dumpFilesButton = QPushButton("Dumpfile")
         self.dumpFilesButton.setEnabled(False)
         self.dumpFilesButton.clicked.connect(self.dumpFiles)
 
@@ -80,14 +99,19 @@ class MainWindow(QMainWindow):
         self.pidText.setPlaceholderText("Set your pid here")
         self.pidText.textChanged.connect(self.updatePid)
 
-        self.labelFileInfo = QLabel("File Information")
+        manualLabel = QLabel("File Information")
+        manualLabel.setStyleSheet("font-weight: bold;")
+
+        self.labelFileInfo = QLabel()
 
         layoutButton = QGridLayout()
-        layoutButton.addWidget(self.labelFileInfo,0,0,1,1)
-        layoutButton.addWidget(self.dumpFilesButton,0,1,1,2)
-        layoutButton.addWidget(self.pidText,1,0,1,1)
-        layoutButton.addWidget(self.memDumpButton,1,1,1,1)
-        layoutButton.addWidget(self.procDumpButton,1,2,1,1)
+        layoutButton.addWidget(manualLabel,0,0,1,1)
+        layoutButton.addWidget(self.labelFileInfo,1,0,2,1)
+        layoutButton.addWidget(self.findFiles,1,1,1,2)
+        layoutButton.addWidget(self.dumpFilesButton,2,1,1,2)
+        layoutButton.addWidget(self.pidText,3,0,1,1)
+        layoutButton.addWidget(self.memDumpButton,3,1,1,1)
+        layoutButton.addWidget(self.procDumpButton,3,2,1,1)
 
         green_widget.setLayout(layoutButton)
 
@@ -116,15 +140,18 @@ class MainWindow(QMainWindow):
         self.labelFile = QLabel("Selected file :", self)
         self.labelDump = QLabel("Selected dump folder :", self)
 
+        manualLabel = QLabel("Setup")
+        manualLabel.setStyleSheet("font-weight: bold;")
 
         layoutButton = QGridLayout()
-        layoutButton.addWidget(button2,0,0,1,1)
-        layoutButton.addWidget(self.labelFile,1,0,1,1)
+        layoutButton.addWidget(manualLabel,0,0,1,1)
+        layoutButton.addWidget(button2,1,0,1,1)
+        layoutButton.addWidget(self.labelFile,2,0,1,1)
         #layoutButton.addWidget(self.labelProfile)
-        layoutButton.addWidget(button1,0,1,1,1)
-        layoutButton.addWidget(self.profilesButton,1,1,1,1)
-        layoutButton.addWidget(button3,2,0,1,1)
-        layoutButton.addWidget(self.labelDump,3,0,1,1)
+        layoutButton.addWidget(button1,1,1,1,1)
+        layoutButton.addWidget(self.profilesButton,2,1,1,1)
+        layoutButton.addWidget(button3,3,0,1,1)
+        layoutButton.addWidget(self.labelDump,4,0,1,1)
 
         blue_widget.setLayout(layoutButton)
 
@@ -143,21 +170,28 @@ class MainWindow(QMainWindow):
         #self.tree.setModel(self.model)
         #self.tree.show()
 
+
         self.tree.clicked.connect(self.on_tree_clicked)
         
         # Tree Ps and Files Widget
         self.searchbar = QLineEdit()
+        self.searchbar.setEnabled(False)
+        self.searchbar.setPlaceholderText("Filter")
         self.checkbox = QCheckBox("Expand All")
         self.checkbox.stateChanged.connect(self.expand_tree)
-        self.searchbar.textChanged.connect(self.filter_tree)  # Connect the slot
+        self.searchbar.textChanged.connect(self.filter_tree)
+
+        manualLabel = QLabel("Tree Display")
+        manualLabel.setStyleSheet("font-weight: bold;")
 
         treePanel = Color('red')
         treeLayout = QHBoxLayout()
 
         layoutFilter = QVBoxLayout()
-        layoutFilter.addWidget(self.searchbar,1)
+        layoutFilter.addWidget(manualLabel)
+        layoutFilter.addWidget(self.searchbar)
         layoutFilter.addWidget(self.checkbox)
-        layoutFilter.addWidget(self.tree,2)
+        layoutFilter.addWidget(self.tree)
 
         treeLayout.addLayout(layoutFilter)
         treePanel.setLayout(treeLayout)
@@ -184,8 +218,20 @@ class MainWindow(QMainWindow):
         for child in node.children:
             self.add_node(child, item)
 
-    def filter_tree(self, text):
+    def filter_tree(self, text=''):
         _, root = self.vi.filterFiles(text)
+        self.model.clear()  # Clear the existing model
+        self.model.setHorizontalHeaderLabels(['Nom du fichier'])
+        self.add_node(root, self.model)
+        self.tree.setModel(self.model)  # Update the model of the tree
+        self.tree.clicked.connect(self.on_tree_clicked)
+        
+        if self.checkbox.isChecked():
+            self.tree.expandAll()
+
+    def firstTree(self):
+        self.searchbar.setEnabled(True)
+        _, root = self.vi.findFiles()
         self.model.clear()  # Clear the existing model
         self.model.setHorizontalHeaderLabels(['Nom du fichier'])
         self.add_node(root, self.model)
@@ -226,7 +272,7 @@ class MainWindow(QMainWindow):
             file_obj = item.data(Qt.UserRole)
             if file_obj is not None:
                 self.currentFiles = file_obj
-                self.labelFileInfo.setText("File Informations\nOffset: "+str(file_obj.offset)+"\nPtr: "+str(file_obj.ptr)+"\nHnd: "+str(file_obj.hnd)+"\nAccess: "+str(file_obj.access)+"\nName: "+str(file_obj.name))
+                self.labelFileInfo.setText("File Information\nOffset: "+str(file_obj.offset)+"\nPtr: "+str(file_obj.ptr)+"\nHnd: "+str(file_obj.hnd)+"\nAccess: "+str(file_obj.access)+"\nName: "+str(file_obj.name))
 
     def dumpFiles(self):
         if self.currentFiles != None:
@@ -250,6 +296,9 @@ class MainWindow(QMainWindow):
                 print("[!] Only numbers")
                 self.procDumpButton.setEnabled(False)
                 self.memDumpButton.setEnabled(False)
+        else:
+            self.procDumpButton.setEnabled(False)
+            self.memDumpButton.setEnabled(False)
 
     def updateCommand(self,command):
         self.currentCommand = command
